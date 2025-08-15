@@ -1,0 +1,42 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Allow public read access to basic user profiles for display purposes
+    match /traders/{traderId} {
+      allow read: if true;
+      allow write: if request.auth != null; // Logged-in users can create, but specific updates are handled by server
+      
+      // Only the user themselves can read/write their own notifications
+      match /notifications/{notificationId} {
+        allow read, write, delete: if request.auth != null && exists(/databases/$(database)/documents/traders/$(traderId)) && get(/databases/$(database)/documents/traders/$(traderId)).data.email == request.auth.token.email;
+      }
+    }
+
+    match /drivers/{driverId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+
+      match /notifications/{notificationId} {
+        allow read, write, delete: if request.auth != null && exists(/databases/$(database)/documents/drivers/$(driverId)) && get(/databases/$(database)/documents/drivers/$(driverId)).data.email == request.auth.token.email;
+      }
+    }
+
+    match /transportCompanies/{companyId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+
+      match /notifications/{notificationId} {
+         allow read, write, delete: if request.auth != null && exists(/databases/$(database)/documents/transportCompanies/$(companyId)) && get(/databases/$(database)/documents/transportCompanies/$(companyId)).data.email == request.auth.token.email;
+      }
+    }
+
+    // Orders can be read by any logged-in user, but only created/updated by server actions.
+    match /orders/{orderId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if false; // Enforce server-side logic for mutations
+    }
+  }
+}

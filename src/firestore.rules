@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if a user is trying to access their own document
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Allow public read on orders, but only authenticated users can create/update
+    match /orders/{orderId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+    
+    // Allow any authenticated user to create their profile in these collections
+    match /traders/{traderId} {
+      allow create: if isAuthenticated();
+      allow read, update: if isAuthenticated() && isOwner(traderId);
+
+      // Allow owner to read their own notifications
+      match /notifications/{notificationId} {
+        allow read, write, delete: if isAuthenticated() && isOwner(traderId);
+      }
+    }
+    
+    match /drivers/{driverId} {
+      allow create: if isAuthenticated();
+      allow read, update: if isAuthenticated() && isOwner(driverId);
+      
+      // Allow owner to read their own notifications
+      match /notifications/{notificationId} {
+        allow read, write, delete: if isAuthenticated() && isOwner(driverId);
+      }
+    }
+
+    match /transportCompanies/{companyId} {
+      allow create: if isAuthenticated();
+      allow read, update: if isAuthenticated() && isOwner(companyId);
+
+      // Allow owner to read their own notifications
+      match /notifications/{notificationId} {
+        allow read, write, delete: if isAuthenticated() && isOwner(companyId);
+      }
+    }
+
+    // For simplicity in this demo, we'll allow admin-like full access for any authenticated user
+    // In a real-world scenario, you would have a custom claim for 'admin' role.
+    match /{collection}/{docId} {
+       allow read, write: if isAuthenticated();
+    }
+  }
+}
