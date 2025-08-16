@@ -1,9 +1,8 @@
-
 import { FC, useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Truck, Clock, Users, DollarSign, UserCheck, AlertCircle, Map, Activity, FilePlus, UserPlus, Building, Search, X, PieChart, BarChart } from 'lucide-react';
+import { ArrowRight, Truck, Clock, Users, DollarSign, UserCheck, AlertCircle, Map, Activity, FilePlus, UserPlus, Building, Search, X, PieChart as PieChartIcon, BarChart as BarChartIcon } from 'lucide-react';
 import StatCard from './StatCard';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { useToast } from '@/hooks/use-toast';
@@ -13,8 +12,9 @@ import { db } from '@/lib/firebase';
 import { useNotifications } from '@/hooks/use-notifications';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { Bar, BarChart as RechartsBarChart, Pie, PieChart as RechartsPieChart, ResponsiveContainer, XAxis, YAxis } from "recharts"
+import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, XAxis, YAxis } from "recharts"
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
+
 
 interface AdminDashboardProps {
     onViewOrder: (order: any) => void;
@@ -150,52 +150,6 @@ const AdminDashboard: FC<AdminDashboardProps> = ({ onViewOrder, traders, drivers
     const [allOrders, setAllOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const chartConfig = {
-      revenue: { label: "Revenue", color: "hsl(var(--chart-2))" },
-      orders: { label: "Orders", color: "hsl(var(--chart-1))" },
-    }
-    
-    const monthlyChartData = useMemo(() => {
-        const months: { [key: string]: { month: string, revenue: number, orders: number } } = {};
-        allOrders.forEach(order => {
-            if (order.status === 'Delivered' && order.createdAt) {
-                const date = order.createdAt.toDate();
-                const month = date.toLocaleString('default', { month: 'short', year: '2-digit' });
-                if (!months[month]) {
-                    months[month] = { month, revenue: 0, orders: 0 };
-                }
-                months[month].revenue += parseFloat(order.price || 0);
-                months[month].orders += 1;
-            }
-        });
-        return Object.values(months).sort((a,b) => new Date(`1 ${a.month}`).getTime() - new Date(`1 ${b.month}`).getTime());
-    }, [allOrders]);
-
-    const statusChartData = useMemo(() => {
-        const statusCounts: { [key: string]: { status: string, count: number, fill: string } } = {
-             'Pending Driver Assignment': { status: 'Pending Assignment', count: 0, fill: 'var(--color-pending)' },
-            'Pending Pickup': { status: 'Pending Pickup', count: 0, fill: 'var(--color-pickup)' },
-            'In Transit': { status: 'In Transit', count: 0, fill: 'var(--color-transit)' },
-            'Delivered': { status: 'Delivered', count: 0, fill: 'var(--color-delivered)' },
-        };
-
-        allOrders.forEach(order => {
-            if (statusCounts[order.status]) {
-                statusCounts[order.status].count += 1;
-            }
-        });
-
-        return Object.values(statusCounts).filter(s => s.count > 0);
-    }, [allOrders]);
-    
-    const statusChartConfig = {
-        pending: { label: "Pending Assignment", color: "hsl(var(--chart-3))" },
-        pickup: { label: "Pending Pickup", color: "hsl(var(--chart-4))" },
-        transit: { label: "In Transit", color: "hsl(var(--chart-1))" },
-        delivered: { label: "Delivered", color: "hsl(var(--chart-2))" },
-    }
-
-
     useEffect(() => {
         const q = query(collection(db, "orders"), orderBy('createdAt', 'desc'));
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -295,6 +249,47 @@ const AdminDashboard: FC<AdminDashboardProps> = ({ onViewOrder, traders, drivers
     
     const totalRevenue = allOrders.filter(o => o.status === 'Delivered').reduce((sum, order) => sum + parseFloat(order.price || 0), 0);
 
+    const monthlyData = useMemo(() => {
+        const data: { [key: string]: { month: string, revenue: number, orders: number } } = {};
+        allOrders.forEach(order => {
+            if (order.createdAt) {
+                const date = order.createdAt.toDate();
+                const month = date.toLocaleString('default', { month: 'short' });
+                if (!data[month]) {
+                    data[month] = { month, revenue: 0, orders: 0 };
+                }
+                if (order.status === 'Delivered') {
+                    data[month].revenue += parseFloat(order.price || 0);
+                }
+                data[month].orders += 1;
+            }
+        });
+        const sortedMonths = Object.values(data).sort((a,b) => new Date(a.month + ' 1, 2000').getMonth() - new Date(b.month + ' 1, 2000').getMonth());
+        return sortedMonths;
+    }, [allOrders]);
+    
+    const barChartConfig = {
+        revenue: { label: "Revenue", color: "hsl(var(--chart-1))" },
+        orders: { label: "Orders", color: "hsl(var(--chart-2))" },
+    } satisfies ChartConfig
+
+    const orderStatusData = useMemo(() => {
+        const data: { [key: string]: number } = {};
+        allOrders.forEach(order => {
+            const status = order.status || 'Unknown';
+            data[status] = (data[status] || 0) + 1;
+        });
+        return Object.entries(data).map(([name, value]) => ({ name, value, fill: `hsl(var(--chart-${Object.keys(data).indexOf(name) + 1}))` }));
+    }, [allOrders]);
+
+    const pieChartConfig = {
+        orders: {
+          label: "Orders",
+        },
+        ...orderStatusData.reduce((acc, cur) => ({...acc, [cur.name]: {label: cur.name, color: cur.fill}}), {})
+      } satisfies ChartConfig
+
+
   return (
     <div className="p-4 space-y-6">
         <div className="grid gap-4 md:grid-cols-4 grid-cols-2">
@@ -307,38 +302,42 @@ const AdminDashboard: FC<AdminDashboardProps> = ({ onViewOrder, traders, drivers
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
             <Card className="lg:col-span-4">
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><BarChart/> Monthly Overview</CardTitle>
+                    <CardTitle className="flex items-center gap-2"><BarChartIcon/> Monthly Overview</CardTitle>
                     <CardDescription>Revenue and total orders per month.</CardDescription>
                 </CardHeader>
                 <CardContent className="pl-2">
-                     <ChartContainer config={chartConfig} className="h-[250px] w-full">
-                        <RechartsBarChart accessibilityLayer data={monthlyChartData}>
+                    <ChartContainer config={barChartConfig} className="h-[250px] w-full">
+                        <BarChart accessibilityLayer data={monthlyData}>
+                             <CartesianGrid vertical={false} />
                             <XAxis
                                 dataKey="month"
                                 tickLine={false}
                                 tickMargin={10}
                                 axisLine={false}
-                                tickFormatter={(value) => value.slice(0, 3)}
-                             />
-                            <YAxis />
+                                tickFormatter={(value) => value}
+                            />
                             <ChartTooltip content={<ChartTooltipContent />} />
                             <Bar dataKey="revenue" fill="var(--color-revenue)" radius={4} />
-                            <Bar dataKey="orders" fill="var(--color-orders)" radius={4} />
-                        </RechartsBarChart>
+                             <Bar dataKey="orders" fill="var(--color-orders)" radius={4} />
+                        </BarChart>
                     </ChartContainer>
                 </CardContent>
             </Card>
              <Card className="lg:col-span-3">
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><PieChart/> Order Status Distribution</CardTitle>
+                    <CardTitle className="flex items-center gap-2"><PieChartIcon/> Order Status Distribution</CardTitle>
                     <CardDescription>Current breakdown of all order statuses.</CardDescription>
                 </CardHeader>
-                <CardContent className="flex items-center justify-center">
-                    <ChartContainer config={statusChartConfig} className="h-[250px] w-full">
-                         <RechartsPieChart>
-                             <ChartTooltip content={<ChartTooltipContent nameKey="status" />} />
-                            <Pie data={statusChartData} dataKey="count" nameKey="status" innerRadius={60} strokeWidth={5} />
-                        </RechartsPieChart>
+                <CardContent className="flex items-center justify-center pb-0">
+                    <ChartContainer config={pieChartConfig} className="h-[250px] w-full">
+                         <PieChart>
+                            <ChartTooltip content={<ChartTooltipContent nameKey="name" hideLabel />} />
+                            <Pie data={orderStatusData} dataKey="value" nameKey="name" innerRadius={50}>
+                                {orderStatusData.map((entry) => (
+                                    <Cell key={`cell-${entry.name}`} fill={entry.fill} />
+                                ))}
+                            </Pie>
+                        </PieChart>
                     </ChartContainer>
                 </CardContent>
             </Card>
