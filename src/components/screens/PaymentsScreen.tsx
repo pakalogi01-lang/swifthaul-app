@@ -2,13 +2,24 @@ import { FC, useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { ArrowDownLeft, ArrowUpRight, Download, Loader2, Send } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Download, Loader2, Send, Trash2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { downloadAsCSV } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { onSnapshot, collection, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { notifyTraderForPaymentAction } from '@/app/actions';
+import { notifyTraderForPaymentAction, hideAllUserHistoryAction } from '@/app/actions';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 const PaymentsScreen: FC = () => {
     const { toast } = useToast();
@@ -17,9 +28,20 @@ const PaymentsScreen: FC = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const q = query(collection(db, "orders"), where("status", "==", "Delivered"));
+        const q = query(
+            collection(db, "orders"), 
+            where("status", "in", ["Delivered", "Cancelled"])
+        );
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const deliveredOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const historyOrders = snapshot.docs.map(doc => ({ 
+                id: doc.id, 
+                ...doc.data(),
+                // Add a check for admin_user
+                isHidden: doc.data().hiddenFor?.includes('admin_user') 
+            }));
+            
+            // Filter out hidden orders for the view
+            const deliveredOrders = historyOrders.filter(order => !order.isHidden);
 
             const incoming = deliveredOrders.map((order, i) => {
                 const total = parseFloat(order.price || 0);
@@ -61,6 +83,22 @@ const PaymentsScreen: FC = () => {
             description: `The ${filename.replace(/-/g, ' ')} list is being downloaded.`
         })
     }
+    
+    const handleClearHistory = async () => {
+        const result = await hideAllUserHistoryAction('admin_user', 'admin');
+        if (result.success) {
+            toast({
+                title: 'History Cleared',
+                description: 'The transaction history has been hidden from your view.',
+            });
+        } else {
+             toast({
+                title: 'Error Clearing History',
+                description: result.error,
+                variant: 'destructive',
+            });
+        }
+    }
 
     const handleRequestPayment = async (payment: any) => {
         if (!payment.traderId) {
@@ -87,8 +125,32 @@ const PaymentsScreen: FC = () => {
     <div className="p-4 space-y-6">
         <Card>
             <CardHeader>
-                <CardTitle>All Transactions</CardTitle>
-                <CardDescription>Review all platform payments and payouts.</CardDescription>
+                <div className="flex justify-between items-center">
+                    <div>
+                        <CardTitle>All Transactions</CardTitle>
+                        <CardDescription>Review all platform payments and payouts.</CardDescription>
+                    </div>
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                           <Button variant="destructive" size="sm" disabled={loading || (incomingPayments.length === 0 && outgoingPayouts.length === 0)}>
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Clear History
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This will hide all delivered and cancelled transactions from your history view. This action cannot be undone.
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleClearHistory} className="bg-destructive hover:bg-destructive/90">Continue</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
             </CardHeader>
             <CardContent>
                 {loading ? (
@@ -175,5 +237,3 @@ const PaymentsScreen: FC = () => {
     </div>
   );
 };
-
-export default PaymentsScreen;
