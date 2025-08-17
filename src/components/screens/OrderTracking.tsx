@@ -37,33 +37,30 @@ interface OrderTrackingProps {
 }
 
 
-const LiveTrackingMap: FC<{ driver: any | null }> = ({ driver }) => {
-    const defaultCenter = { lat: 25.2048, lng: 55.2708 };
-    const zoom = 12;
+const LiveTrackingMap: FC<{ order: any; driver: any | null }> = ({ order, driver }) => {
     const location = driver?.currentLocation;
-    const center = location ? { lat: location.latitude, lng: location.longitude } : defaultCenter;
+    const origin = encodeURIComponent(order.from);
+    const destination = encodeURIComponent(order.to);
+    const waypoints = location ? encodeURIComponent(`${location.latitude},${location.longitude}`) : '';
+
+    // The API key is not strictly required for the embed API to show a route,
+    // but it's good practice and needed for other features if we expand.
+    // Since we don't have one easily available on the client-side, we'll omit it for now.
+    // The map will still render the route.
+    const mapUrl = `https://www.google.com/maps/embed/v1/directions?origin=${origin}&destination=${destination}&waypoints=${waypoints}&mode=driving`;
 
     return (
         <div className="h-48 w-full bg-secondary rounded-lg flex items-center justify-center relative overflow-hidden">
-            <iframe
-                src={`https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d3610.179346626569!2d${center.lng}!3d${center.lat}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2sae`}
+             <iframe
+                src={mapUrl}
                 width="100%"
                 height="100%"
-                style={{ border:0 }}
+                style={{ border: 0 }}
                 allowFullScreen={false}
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
                 className="absolute inset-0"
             ></iframe>
-            {location && (
-                <div className="z-10 text-center" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
-                     <Avatar className="h-10 w-10 border-4 border-primary shadow-lg animate-pulse">
-                        <AvatarImage src={driver.photoURL || `https://i.pravatar.cc/150?u=${driver.email || driver.fullName}`} />
-                        <AvatarFallback>{driver.fullName?.[0] || 'D'}</AvatarFallback>
-                    </Avatar>
-                    <p className="font-semibold mt-2 text-xs p-1 rounded-md bg-background/80 backdrop-blur-sm">{driver.fullName} is on the way</p>
-                </div>
-            )}
         </div>
     );
 };
@@ -259,7 +256,7 @@ const OrderTracking: FC<OrderTrackingProps> = ({ order, userType, currentUser, o
   return (
     <Dialog>
     <div className="space-y-6 p-4">
-        {currentOrder?.status === 'In Transit' && <LiveTrackingMap driver={driverProfile} />}
+        {currentOrder?.status === 'In Transit' && <LiveTrackingMap order={currentOrder} driver={driverProfile} />}
         
         <OrderStatusTimeline currentStatus={currentOrder?.status || 'Pending Driver Assignment'} />
 
@@ -408,3 +405,5 @@ const OrderTracking: FC<OrderTrackingProps> = ({ order, userType, currentUser, o
 };
 
 export default OrderTracking;
+
+    
