@@ -292,7 +292,7 @@ export default function Home() {
   const login = async (type: "trader" | "driver" | "admin" | "transport_company", loginIdentifier: string, isCompanyDriver: boolean = false) => {
     if (type === "admin") {
         setView("admin_dashboard");
-        const adminUser = { fullName: 'Admin User', email: 'admin@swifthaul.com', id: 'admin_user'};
+        const adminUser = { fullName: 'Admin User', email: 'admin@buraqfleet.com', id: 'admin_user'};
         setCurrentUser(adminUser);
         setUserType(type);
         setupNotificationListener(type, adminUser.id);
@@ -363,7 +363,7 @@ export default function Home() {
   
   const getHeaderTitle = () => {
     switch(view) {
-        case 'welcome': return 'SwiftHaul';
+        case 'welcome': return 'BURAQFLEET';
         case 'trader_dashboard': return 'Trader Dashboard';
         case 'driver_dashboard': return 'Driver Dashboard';
         case 'admin_dashboard': return 'Admin Dashboard';
@@ -386,7 +386,7 @@ export default function Home() {
         case 'trader_payments': return 'My Payments';
         case 'driver_earnings': return 'My Earnings';
         case 'settings': return 'App Settings';
-        default: return 'SwiftHaul';
+        default: return 'BURAQFLEET';
     }
   };
 
