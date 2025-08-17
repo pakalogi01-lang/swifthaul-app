@@ -1,4 +1,3 @@
-
 "use server";
 
 import type { CreateOrderInput, UpdateOrderStatusInput, CreatePaymentRequestInput, RecordPayoutInput } from "@/ai/schemas/order";
@@ -463,7 +462,7 @@ export async function deleteOrderAction(orderId: string, userId: string) {
     }
 }
 
-export async function hideAllUserHistoryAction(userId: string, userType: 'trader' | 'driver' | 'transport_company') {
+export async function hideAllUserHistoryAction(userId: string, userType: 'trader' | 'driver' | 'transport_company' | 'admin') {
     if (!userId || !userType) {
         return { success: false, error: "User ID and type are required." };
     }
@@ -473,12 +472,12 @@ export async function hideAllUserHistoryAction(userId: string, userType: 'trader
         if (userType === 'trader') queryField = 'traderId';
         else if (userType === 'driver') queryField = 'driverId';
         else if (userType === 'transport_company') queryField = 'driverId'; // Companies are also identified by driverId
-        else return { success: false, error: 'Invalid user type.' };
-
+        
         const q = query(
             collection(db, "orders"),
-            where(queryField, "==", userId),
-            where("status", "in", ["Delivered", "Cancelled"])
+            where("status", "in", ["Delivered", "Cancelled"]),
+            // Only apply user-specific filtering if not admin
+            ...(userType !== 'admin' ? [where(queryField, "==", userId)] : [])
         );
 
         const querySnapshot = await getDocs(q);
