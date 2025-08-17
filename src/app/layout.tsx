@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { NotificationProvider } from '@/context/NotificationContext';
 
 export const metadata: Metadata = {
-  title: 'BURAQFLEET',
+  title: 'SwiftHaul',
   description: 'Connecting traders and drivers seamlessly.',
 };
 
