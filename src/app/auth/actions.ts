@@ -1,3 +1,4 @@
+
 'use server';
 
 import { 
@@ -112,7 +113,7 @@ export async function signInWithEmail(email: string, password: string) {
 
 export async function signInAdmin(email: string, password: string) {
     // TEMPORARY FIX: Hardcode credentials to unblock admin login.
-    const adminEmail = "admin@buraqfleet.com";
+    const adminEmail = "admin@swifthaul.com";
     const adminPassword = "password";
 
     if (email === adminEmail && password === adminPassword) {
