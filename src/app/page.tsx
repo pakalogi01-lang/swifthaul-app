@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, type ReactNode, useEffect, useRef } from "react";
+import dynamic from 'next/dynamic';
 import {
   Truck,
   User,
@@ -23,6 +24,7 @@ import {
   FileText,
   Users2,
   Wallet,
+  AlertTriangle,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -44,7 +46,6 @@ import DriverDashboard from "@/components/screens/DriverDashboard";
 import PlaceOrder from "@/components/screens/PlaceOrder";
 import OrderTracking from "@/components/screens/OrderTracking";
 import OrderHistory from "@/components/screens/OrderHistory";
-import AdminDashboard from "@/components/screens/AdminDashboard";
 import ManageScreen from "@/components/screens/ManageScreen";
 import TransportCompanyDashboard from "@/components/screens/TransportCompanyDashboard";
 import ProfileScreen from "@/components/screens/ProfileScreen";
@@ -63,6 +64,30 @@ import { useToast } from "@/hooks/use-toast";
 import { deleteNotificationAction, deleteAdminNotificationAction } from "./actions";
 import { onAuthStateChanged } from "firebase/auth";
 import { cn } from "@/lib/utils";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+
+
+const AdminDashboard = dynamic(
+  () => import('@/components/screens/AdminDashboard'),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="p-4 space-y-4">
+        <div className="grid gap-4 md:grid-cols-4 grid-cols-2">
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+        </div>
+         <div className="grid md:grid-cols-2 gap-6">
+            <Skeleton className="h-96" />
+            <Skeleton className="h-96" />
+        </div>
+      </div>
+    )
+  }
+);
 
 
 type UserType = "trader" | "driver" | "admin" | "transport_company" | null;
@@ -267,7 +292,7 @@ export default function Home() {
   const login = async (type: "trader" | "driver" | "admin" | "transport_company", loginIdentifier: string, isCompanyDriver: boolean = false) => {
     if (type === "admin") {
         setView("admin_dashboard");
-        const adminUser = { fullName: 'Admin User', email: 'admin@swifthaul.com', id: 'admin_user'};
+        const adminUser = { fullName: 'Admin User', email: 'admin@buraqfleet.com', id: 'admin_user'};
         setCurrentUser(adminUser);
         setUserType(type);
         setupNotificationListener(type, adminUser.id);
@@ -313,7 +338,7 @@ export default function Home() {
 
   const navigate = (newView: View, data?: any) => {
     if (newView === 'profile' && data) {
-        const profileCollectionName = data.type === 'transport_company' ? 'transportCompanies' : `${data.type}s`;
+        const profileCollectionName = userType === 'transport_company' ? 'transportCompanies' : `${data.type}s`;
         setupUserProfileListener(profileCollectionName, data.user.id);
         setProfileToView(data);
     } else {
@@ -373,15 +398,10 @@ export default function Home() {
         return <TraderDashboard onPlaceOrder={() => navigate("place_order")} onViewOrder={(order) => navigate("track_order", order)} currentUser={currentUser} />;
       case "driver_dashboard":
         return <DriverDashboard onViewOrder={(order) => navigate("track_order", order)} currentUser={currentUser} />;
-      case "admin_dashboard":
-        return <AdminDashboard 
-                    onViewOrder={(order) => navigate("track_order", order)}
-                    traders={traders}
-                    drivers={drivers}
-                    companies={companies}
-                />;
        case "transport_company_dashboard":
         return <TransportCompanyDashboard onViewOrder={(order) => navigate("track_order", order)} currentUser={currentUser} />;
+      case "admin_dashboard":
+        return <AdminDashboard onViewOrder={(order) => navigate("track_order", order)} traders={traders} drivers={drivers} companies={companies} />;
       case "place_order":
         return <PlaceOrder onOrderPlaced={() => navigate(getDashboardView())} traderId={currentUser?.id} />;
       case "track_order":
