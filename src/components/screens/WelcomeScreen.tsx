@@ -1,11 +1,10 @@
-
 import { useState, type FC, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Truck, User, Building, Loader2, UserCog, ArrowLeft } from 'lucide-react';
+import { Truck, User, Building, Loader2, UserCog, ArrowLeft, AlertTriangle } from 'lucide-react';
 import DriverSignupForm from '../forms/DriverSignupForm';
 import { Separator } from '../ui/separator';
 import { useToast } from '@/hooks/use-toast';
@@ -191,11 +190,11 @@ const WelcomeScreen: FC<WelcomeScreenProps> = ({ onLogin, appLogoUrl }) => {
   return (
     <div className="flex flex-col items-center justify-center h-full text-center p-4">
         {appLogoUrl ? (
-          <img src={appLogoUrl} alt="SwiftHaul Logo" className="w-20 h-20 mb-4 object-contain" />
+          <img src={appLogoUrl} alt="BURAQFLEET Logo" className="w-20 h-20 mb-4 object-contain" />
         ) : (
           <Truck className="w-20 h-20 text-primary mb-4" />
         )}
-        <h1 className="text-4xl font-bold font-headline mb-2 text-foreground cursor-pointer" onClick={handleAdminSecretClick}>SwiftHaul</h1>
+        <h1 className="text-4xl font-bold font-headline mb-2 text-foreground cursor-pointer" onClick={handleAdminSecretClick}>BURAQFLEET</h1>
         <p className="text-lg text-muted-foreground mb-8">Your logistics partner, simplified.</p>
 
         <Card className="w-full max-w-md text-left">
@@ -216,7 +215,7 @@ const WelcomeScreen: FC<WelcomeScreenProps> = ({ onLogin, appLogoUrl }) => {
                          <div className="space-y-4 pt-4">
                             <div className="space-y-2">
                                 <Label htmlFor="admin-email">Admin Email</Label>
-                                <Input id="admin-email" type="email" placeholder="admin@swifthaul.com" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} />
+                                <Input id="admin-email" type="email" placeholder="admin@buraqfleet.com" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="admin-password">Admin Password</Label>
